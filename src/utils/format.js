@@ -1,10 +1,4 @@
-import { CURRENCY, LOCALE } from '../config';
-
-const currencyFormatter = new Intl.NumberFormat(LOCALE, {
-  style: 'currency',
-  currency: CURRENCY,
-  maximumFractionDigits: 0,
-});
+import { LOCALE } from '../config';
 
 const timeFormatter = new Intl.DateTimeFormat(LOCALE, {
   hour: '2-digit',
@@ -22,10 +16,6 @@ const longDateFormatter = new Intl.DateTimeFormat(LOCALE, {
   month: 'long',
   year: 'numeric',
 });
-
-export function formatCurrency(amount) {
-  return currencyFormatter.format(amount);
-}
 
 export function formatTime(value) {
   return timeFormatter.format(new Date(value));

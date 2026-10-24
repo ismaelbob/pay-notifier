@@ -25,33 +25,51 @@ npm run web
 ```
 src/
   app/                 # rutas (Expo Router)
-    _layout.js         # providers raíz + Stack
+    _layout.js         # providers raíz + SQLite + Stack
     (tabs)/
       _layout.js       # barra de pestañas
       index.js         # Inicio: resumen y últimos cobros
       history.js       # Historial agrupado por día
       settings.js      # Apariencia, avisos y acerca de
   components/          # UI reutilizable (Screen, PaymentRow, Chip…)
-  context/             # estado de cobros (en memoria)
+  context/             # estado de cobros (carga/inserta en SQLite)
   data/                # cobros de ejemplo + bancos
+  db/                  # esquema, migraciones y consultas SQLite
   theme/               # paletas y ThemeProvider (modo claro/oscuro)
-  utils/               # formato de moneda/fechas y agrupaciones
-  config.js            # locale y moneda
+  utils/               # dinero, fechas y agrupaciones
+  config.js            # locale, moneda y decimales
+metro.config.js        # soporte .wasm y headers para SQLite en web
 ```
+
+## Datos
+
+Los cobros se guardan en el dispositivo con **expo-sqlite** (`pay-notifier.db`):
+
+- Tabla `payments` (`id`, `sender`, `bank`, `amount_minor`, `received_at`, `reference`, `created_at`).
+- Los importes se guardan como **enteros en unidades menores** (sin decimales flotantes).
+  COP usa 0 decimales; si cambias a una moneda con centavos, ajusta `CURRENCY_DECIMALS` en `src/config.js`.
+- Los datos de ejemplo se siembran **solo la primera vez** (controlado con `PRAGMA user_version`).
+- Los cobros añadidos con **“Simular cobro recibido”** sobreviven al reinicio de la app.
+- Para inspeccionar la base de datos en desarrollo: Shift + M en la terminal de Expo → *Open expo-sqlite*.
 
 ## Ajustes rápidos
 
-- **Moneda / formato**: `src/config.js` (`LOCALE` y `CURRENCY`). Por defecto `es-CO` / `COP`.
+- **Moneda / formato**: `src/config.js` (`LOCALE`, `CURRENCY` y `CURRENCY_DECIMALS`). Por defecto `es-CO` / `COP`.
 - **Colores**: `src/theme/colors.js`.
 - **Datos de ejemplo**: `src/data/payments.js`.
 
 El tema elegido (Sistema / Claro / Oscuro) se guarda con AsyncStorage.
 
+### SQLite en web
+
+`metro.config.js` ya empaqueta `.wasm` y añade los headers `COEP`/`COOP` para el servidor de
+desarrollo. Si publicas la versión web, tu hosting debe enviar esos mismos headers.
+
 ## Estado actual
 
-- UI completa con datos de ejemplo en memoria.
-- Botón **“Simular cobro recibido”** en Inicio para ver la lista y los totales actualizarse.
-- Sin backend ni persistencia de cobros todavía.
+- UI completa, cobros persistidos en SQLite y totales calculados desde la base de datos.
+- Botón **“Simular cobro recibido”** en Inicio para probar la inserción y persistencia.
+- Sin backend ni sincronización entre dispositivos.
 
 ## Siguiente paso: detección real de notificaciones
 

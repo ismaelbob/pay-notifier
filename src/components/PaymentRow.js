@@ -2,7 +2,8 @@ import { StyleSheet, Text, View } from 'react-native';
 
 import { BANK_COLORS } from '../data/payments';
 import { useTheme } from '../theme/ThemeContext';
-import { formatCurrency, formatTime } from '../utils/format';
+import { formatTime } from '../utils/format';
+import { formatMoney } from '../utils/money';
 
 export function PaymentRow({ payment, showDivider = false }) {
   const { colors, isDark } = useTheme();
@@ -31,9 +32,13 @@ export function PaymentRow({ payment, showDivider = false }) {
 
       <View style={styles.amountBox}>
         <Text style={[styles.amount, { color: colors.positive }]}>
-          +{formatCurrency(payment.amount)}
+          +{formatMoney(payment.amount)}
         </Text>
-        <Text style={[styles.reference, { color: colors.textSubtle }]}>Ref. {payment.reference}</Text>
+        {payment.reference ? (
+          <Text style={[styles.reference, { color: colors.textSubtle }]}>
+            Ref. {payment.reference}
+          </Text>
+        ) : null}
       </View>
     </View>
   );

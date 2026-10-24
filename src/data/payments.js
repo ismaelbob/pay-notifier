@@ -1,3 +1,5 @@
+import { toMinorUnits } from '../utils/money';
+
 const minutesAgo = (minutes) => new Date(Date.now() - minutes * 60000).toISOString();
 
 const daysAgoAt = (days, hours, minutes) => {
@@ -16,12 +18,13 @@ export const BANK_COLORS = {
   'Banco de Bogotá': { light: '#0369A1', dark: '#38BDF8' },
 };
 
+// `amount` va en unidades menores (ver src/utils/money.js).
 export const SEED_PAYMENTS = [
   {
     id: 'pay-001',
     sender: 'Mariana Ospina',
     bank: 'Nequi',
-    amount: 250000,
+    amount: toMinorUnits(250000),
     receivedAt: minutesAgo(18),
     reference: 'A1K9Z',
   },
@@ -29,7 +32,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-002',
     sender: 'Andrés Restrepo',
     bank: 'Bancolombia',
-    amount: 120000,
+    amount: toMinorUnits(120000),
     receivedAt: minutesAgo(95),
     reference: 'B7Q2M',
   },
@@ -37,7 +40,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-003',
     sender: 'Laura Cifuentes',
     bank: 'Daviplata',
-    amount: 85000,
+    amount: toMinorUnits(85000),
     receivedAt: minutesAgo(240),
     reference: 'C3X8L',
   },
@@ -45,7 +48,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-004',
     sender: 'Carlos Mejía',
     bank: 'BBVA',
-    amount: 480000,
+    amount: toMinorUnits(480000),
     receivedAt: daysAgoAt(1, 16, 42),
     reference: 'D5N1P',
   },
@@ -53,7 +56,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-005',
     sender: 'Sofía Ramírez',
     bank: 'Nequi',
-    amount: 65000,
+    amount: toMinorUnits(65000),
     receivedAt: daysAgoAt(1, 11, 5),
     reference: 'E9R4T',
   },
@@ -61,7 +64,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-006',
     sender: 'Diego Torres',
     bank: 'Banco de Bogotá',
-    amount: 320000,
+    amount: toMinorUnits(320000),
     receivedAt: daysAgoAt(2, 18, 20),
     reference: 'F2W6H',
   },
@@ -69,7 +72,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-007',
     sender: 'Valentina Gómez',
     bank: 'Davivienda',
-    amount: 150000,
+    amount: toMinorUnits(150000),
     receivedAt: daysAgoAt(3, 9, 48),
     reference: 'G8Y3J',
   },
@@ -77,7 +80,7 @@ export const SEED_PAYMENTS = [
     id: 'pay-008',
     sender: 'Camilo Herrera',
     bank: 'Bancolombia',
-    amount: 99000,
+    amount: toMinorUnits(99000),
     receivedAt: daysAgoAt(5, 14, 12),
     reference: 'H4M7S',
   },
@@ -109,7 +112,7 @@ export function buildRandomPayment() {
   return {
     id: `sim-${Date.now()}`,
     ...contact,
-    amount,
+    amount: toMinorUnits(amount),
     receivedAt: new Date().toISOString(),
     reference: buildReference(),
   };

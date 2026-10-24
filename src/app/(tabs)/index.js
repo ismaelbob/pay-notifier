@@ -1,15 +1,17 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
-import { useMemo } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useMemo } from 'react';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { ErrorState } from '../../components/ErrorState';
 import { InfoBanner } from '../../components/InfoBanner';
+import { LoadingState } from '../../components/LoadingState';
 import { PaymentRow } from '../../components/PaymentRow';
 import { Screen } from '../../components/Screen';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { usePayments } from '../../context/PaymentsContext';
 import { useTheme } from '../../theme/ThemeContext';
-import { formatCurrency } from '../../utils/format';
+import { formatMoney } from '../../utils/money';
 import { getTotals } from '../../utils/payments';
 
 function getGreeting() {
@@ -21,9 +23,34 @@ function getGreeting() {
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
-  const { payments, addRandomPayment } = usePayments();
+  const { payments, isLoading, error, reload, addRandomPayment } = usePayments();
   const totals = useMemo(() => getTotals(payments), [payments]);
   const recent = payments.slice(0, 4);
+
+  const handleSimulate = useCallback(async () => {
+    try {
+      await addRandomPayment();
+    } catch (cause) {
+      console.warn('No se pudo guardar el cobro', cause);
+      Alert.alert('No se pudo guardar', 'Inténtalo de nuevo.');
+    }
+  }, [addRandomPayment]);
+
+  if (isLoading) {
+    return (
+      <Screen>
+        <LoadingState />
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen>
+        <ErrorState message={error} onRetry={reload} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -55,7 +82,7 @@ export default function HomeScreen() {
             adjustsFontSizeToFit
             style={[styles.heroAmount, { color: colors.heroText }]}
           >
-            {formatCurrency(totals.today)}
+            {formatMoney(totals.today)}
           </Text>
 
           <View style={[styles.heroDivider, { backgroundColor: colors.heroOverlay }]} />
@@ -64,7 +91,7 @@ export default function HomeScreen() {
             <View style={styles.heroStat}>
               <Text style={[styles.heroStatLabel, { color: colors.heroMuted }]}>Últimos 7 días</Text>
               <Text style={[styles.heroStatValue, { color: colors.heroText }]}>
-                {formatCurrency(totals.week)}
+                {formatMoney(totals.week)}
               </Text>
             </View>
             <View style={styles.heroStat}>
@@ -98,7 +125,7 @@ export default function HomeScreen() {
         </View>
 
         <Pressable
-          onPress={addRandomPayment}
+          onPress={handleSimulate}
           style={({ pressed }) => [
             styles.simulate,
             { backgroundColor: colors.primarySoft, opacity: pressed ? 0.7 : 1 },
@@ -109,8 +136,9 @@ export default function HomeScreen() {
         </Pressable>
 
         <InfoBanner>
-          Los cobros son de ejemplo. La detección automática de notificaciones bancarias necesita un
-          development build con un módulo nativo; no funciona en Expo Go.
+          Tus cobros se guardan en este dispositivo con SQLite. La detección automática de
+          notificaciones bancarias necesita un development build con un módulo nativo; no funciona
+          en Expo Go.
         </InfoBanner>
       </ScrollView>
     </Screen>

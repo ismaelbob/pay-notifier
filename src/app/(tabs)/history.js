@@ -3,12 +3,14 @@ import { useMemo, useState } from 'react';
 import { SectionList, StyleSheet, Text, View } from 'react-native';
 
 import { Chip } from '../../components/Chip';
+import { ErrorState } from '../../components/ErrorState';
+import { LoadingState } from '../../components/LoadingState';
 import { PaymentRow } from '../../components/PaymentRow';
 import { Screen } from '../../components/Screen';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { usePayments } from '../../context/PaymentsContext';
 import { useTheme } from '../../theme/ThemeContext';
-import { formatCurrency } from '../../utils/format';
+import { formatMoney } from '../../utils/money';
 import { filterByRange, groupByDay, sumAmounts } from '../../utils/payments';
 
 const RANGES = [
@@ -19,12 +21,28 @@ const RANGES = [
 
 export default function HistoryScreen() {
   const { colors } = useTheme();
-  const { payments } = usePayments();
+  const { payments, isLoading, error, reload } = usePayments();
   const [range, setRange] = useState('all');
 
   const filtered = useMemo(() => filterByRange(payments, range), [payments, range]);
   const sections = useMemo(() => groupByDay(filtered), [filtered]);
   const total = useMemo(() => sumAmounts(filtered), [filtered]);
+
+  if (isLoading) {
+    return (
+      <Screen>
+        <LoadingState />
+      </Screen>
+    );
+  }
+
+  if (error) {
+    return (
+      <Screen>
+        <ErrorState message={error} onRetry={reload} />
+      </Screen>
+    );
+  }
 
   return (
     <Screen>
@@ -46,7 +64,7 @@ export default function HistoryScreen() {
           <Text style={[styles.summaryLabel, { color: colors.textMuted }]}>
             {filtered.length} {filtered.length === 1 ? 'cobro' : 'cobros'}
           </Text>
-          <Text style={[styles.summaryTotal, { color: colors.text }]}>{formatCurrency(total)}</Text>
+          <Text style={[styles.summaryTotal, { color: colors.text }]}>{formatMoney(total)}</Text>
         </View>
       </View>
 
@@ -67,7 +85,7 @@ export default function HistoryScreen() {
           <View style={styles.sectionHeader}>
             <Text style={[styles.sectionTitle, { color: colors.textMuted }]}>{section.title}</Text>
             <Text style={[styles.sectionTotal, { color: colors.textSubtle }]}>
-              {formatCurrency(section.total)}
+              {formatMoney(section.total)}
             </Text>
           </View>
         )}
