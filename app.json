@@ -28,6 +28,16 @@
       "expo-status-bar",
       "expo-font",
       "expo-sqlite"
-    ]
+    ],
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "6f30a030-febe-481e-b81f-24c05c325758"
+      }
+    }
   }
 }

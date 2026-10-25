@@ -49,6 +49,10 @@ export default function SettingsScreen() {
       return;
     }
     try {
+      if (typeof NotificationListenerModule.isEnabled !== 'function') {
+        Alert.alert('Módulo no disponible', 'Este build no incluye el lector de notificaciones. Genera un nuevo development build con el módulo actualizado.');
+        return;
+      }
       const enabled = NotificationListenerModule.isEnabled();
       if (enabled) {
         Alert.alert('Acceso concedido', 'Pay Notifier ya tiene acceso a las notificaciones. Los cobros de Nequi, Bancolombia, Daviplata, BBVA, Davivienda y Banco de Bogotá se guardarán automáticamente.');
@@ -58,13 +62,13 @@ export default function SettingsScreen() {
           'Para leer las notificaciones de tus bancos debes activar el "Acceso a notificaciones" para Pay Notifier.',
           [
             { text: 'Cancelar', style: 'cancel' },
-            { text: 'Abrir ajustes', onPress: () => NotificationListenerModule.openSettings() },
+            { text: 'Abrir ajustes', onPress: () => NotificationListenerModule.openSettings?.() },
           ]
         );
       }
     } catch (error) {
       console.warn('Error al verificar acceso a notificaciones', error);
-      NotificationListenerModule.openSettings();
+      NotificationListenerModule.openSettings?.();
     }
   };
 

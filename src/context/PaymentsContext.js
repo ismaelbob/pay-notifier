@@ -112,6 +112,7 @@ export function useBankNotificationListener() {
 
   useEffect(() => {
     if (Platform.OS !== 'android') return;
+    if (typeof NotificationListenerModule.addListener !== 'function') return;
 
     const subscription = NotificationListenerModule.addListener('onBankNotification', (payload) => {
       const parsed = parseBankNotification(payload);
@@ -120,6 +121,10 @@ export function useBankNotificationListener() {
       }
     });
 
-    return () => subscription?.remove();
+    return () => {
+      if (subscription && typeof subscription.remove === 'function') {
+        subscription.remove();
+      }
+    };
   }, [addPaymentFromNotification]);
 }

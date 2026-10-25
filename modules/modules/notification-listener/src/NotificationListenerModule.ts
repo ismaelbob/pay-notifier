@@ -1,12 +1,16 @@
-import { NativeModule, requireNativeModule } from 'expo';
+import { NativeModule, requireOptionalNativeModule } from 'expo';
 import type { NotificationListenerEvents } from './NotificationListener.types';
+import NotificationListenerModuleWeb from './NotificationListenerModule.web';
 
 declare class NotificationListenerModule extends NativeModule<NotificationListenerEvents> {
   isEnabled(): boolean;
   requestPermission(): void;
   openSettings(): void;
-  setEnabledBanks(banks: string[]): void;
+  setEnabledBanks?(banks: string[]): void;
 }
 
-export default requireNativeModule<NotificationListenerModule>('NotificationListener');
+const nativeModule = requireOptionalNativeModule<NotificationListenerModule>('NotificationListener');
+const fallback = new NotificationListenerModuleWeb() as unknown as NotificationListenerModule;
+
+export default nativeModule ?? fallback;
 export type { NotificationPayload, NotificationListenerEvents } from './NotificationListener.types';
