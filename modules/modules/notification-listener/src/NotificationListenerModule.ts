@@ -10,7 +10,9 @@ declare class NotificationListenerModule extends NativeModule<NotificationListen
 }
 
 const nativeModule = requireOptionalNativeModule<NotificationListenerModule>('NotificationListener');
-const fallback = new NotificationListenerModuleWeb() as unknown as NotificationListenerModule;
+
+// NotificationListenerModule.web.ts ya exporta una instancia, usarla directamente
+const fallback = NotificationListenerModuleWeb as unknown as NotificationListenerModule;
 
 export default nativeModule ?? fallback;
 export type { NotificationPayload, NotificationListenerEvents } from './NotificationListener.types';
