@@ -21,6 +21,7 @@ buildscript {
 }
 
 project.android {
+  namespace 'expo.modules.notificationlistener'
   compileSdkVersion safeExtGet("compileSdkVersion", 36)
   defaultConfig {
     minSdkVersion safeExtGet("minSdkVersion", 24)
