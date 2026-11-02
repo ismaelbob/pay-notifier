@@ -34,14 +34,16 @@ class NotificationListenerModule : Module() {
     }
 
     Function("requestPermission") {
-      val context = appContext.reactContext ?: return@Function
+      // `Function` sin argumentos espera `Any?`: un return sin valor devuelve
+      // Unit y Kotlin no lo convierte implícitamente.
+      val context = appContext.reactContext ?: return@Function null
       val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
     }
 
     Function("openSettings") {
-      val context = appContext.reactContext ?: return@Function
+      val context = appContext.reactContext ?: return@Function null
       val intent = Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)
       intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
       context.startActivity(intent)
