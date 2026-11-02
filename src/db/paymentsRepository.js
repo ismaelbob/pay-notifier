@@ -1,4 +1,4 @@
-const SELECT_FIELDS = 'id, sender, bank, amount_minor, received_at, reference';
+const SELECT_FIELDS = 'id, sender, bank, amount_minor, received_at, reference, source_key';
 
 function mapRow(row) {
   return {
@@ -8,6 +8,7 @@ function mapRow(row) {
     amount: row.amount_minor,
     receivedAt: row.received_at,
     reference: row.reference,
+    sourceKey: row.source_key ?? null,
   };
 }
 
@@ -22,20 +23,24 @@ export async function listPayments(db) {
   return rows.map(mapRow);
 }
 
-/** Inserta un cobro. El id es único, así que reintentos no duplican filas. */
+/**
+ * Inserta un cobro. El id y `source_key` son únicos, así que reintentos no
+ * duplican filas. Devuelve `inserted: false` cuando la fila ya existía.
+ */
 export async function insertPayment(db, payment) {
-  await db.runAsync(
+  const result = await db.runAsync(
     `INSERT OR IGNORE INTO payments
-       (id, sender, bank, amount_minor, received_at, reference, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+       (id, sender, bank, amount_minor, received_at, reference, source_key, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
     payment.id,
     payment.sender,
     payment.bank,
     payment.amount,
     payment.receivedAt,
     payment.reference ?? null,
+    payment.sourceKey ?? null,
     new Date().toISOString()
   );
 
-  return payment;
+  return { payment, inserted: result.changes > 0 };
 }

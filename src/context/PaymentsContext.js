@@ -11,7 +11,7 @@ import { Platform } from 'react-native';
 
 import { buildRandomPayment } from '../data/payments';
 import { insertPayment, listPayments } from '../db/paymentsRepository';
-import NotificationListenerModule from '../../modules/modules/notification-listener/src/NotificationListenerModule';
+import NotificationListenerModule from '../../modules/notification-listener';
 import { parseBankNotification } from '../utils/notificationParser';
 
 const PaymentsContext = createContext({
@@ -70,8 +70,10 @@ export function PaymentsProvider({ children }) {
 
   const addRandomPayment = useCallback(async () => {
     const payment = buildRandomPayment();
-    await insertPayment(db, payment);
-    setPayments((current) => [payment, ...current]);
+    const { inserted } = await insertPayment(db, payment);
+    if (inserted) {
+      setPayments((current) => [payment, ...current]);
+    }
     return payment;
   }, [db]);
 
@@ -83,14 +85,21 @@ export function PaymentsProvider({ children }) {
       amount: parsed.amount,
       receivedAt: parsed.receivedAt,
       reference: parsed.reference || null,
+      sourceKey: parsed.sourceKey || null,
     };
-    await insertPayment(db, payment);
-    setPayments((current) => {
-      // Avoid duplicates by id
-      if (current.some((p) => p.id === payment.id)) return current;
-      return [payment, ...current];
-    });
-    return payment;
+
+    const { inserted } = await insertPayment(db, payment);
+
+    // `source_key` es único: si la notificación ya estaba guardada, la
+    // inserción se ignora y no se vuelve a mostrar.
+    if (inserted) {
+      setPayments((current) => {
+        if (current.some((p) => p.id === payment.id)) return current;
+        return [payment, ...current];
+      });
+    }
+
+    return { payment, inserted };
   }, [db]);
 
   const value = useMemo(
@@ -108,23 +117,65 @@ export function usePayments() {
 // Hook to listen for bank notifications and auto-add payments
 
 export function useBankNotificationListener() {
-  const { addPaymentFromNotification } = usePayments();
+  const { addPaymentFromNotification, isLoading } = usePayments();
+
+  const handlePayload = useCallback(
+    async (payload) => {
+      const pendingId = payload?.pendingId;
+
+      try {
+        const parsed = parseBankNotification(payload);
+
+        // `null` significa que la notificación no es un cobro: se confirma
+        // igual para no reintentarla en cada arranque.
+        if (parsed) {
+          await addPaymentFromNotification(parsed);
+        }
+
+        if (pendingId) {
+          NotificationListenerModule.removePendingNotifications([pendingId]);
+        }
+      } catch (cause) {
+        // Sin confirmar: la notificación sigue pendiente y se reintenta luego.
+        console.warn('No se pudo procesar la notificación del banco', cause);
+      }
+    },
+    [addPaymentFromNotification]
+  );
 
   useEffect(() => {
-    if (Platform.OS !== 'android') return;
-    if (typeof NotificationListenerModule.addListener !== 'function') return;
+    if (Platform.OS !== 'android') return undefined;
+    // Espera a que la lista inicial esté cargada para no pisar el estado.
+    if (isLoading) return undefined;
+    if (typeof NotificationListenerModule.addListener !== 'function') return undefined;
+
+    let active = true;
 
     const subscription = NotificationListenerModule.addListener('onBankNotification', (payload) => {
-      const parsed = parseBankNotification(payload);
-      if (parsed) {
-        addPaymentFromNotification(parsed).catch((e) => console.warn('Error adding notification payment', e));
-      }
+      handlePayload(payload);
     });
 
+    // Recupera lo capturado mientras la app estaba cerrada o en segundo plano.
+    // Se hace después de adjuntar el listener para no perder eventos que lleguen
+    // durante la lectura; el `source_key` evita insertarlos dos veces.
+    (async () => {
+      try {
+        const pending = NotificationListenerModule.getPendingNotifications();
+
+        for (const payload of pending) {
+          if (!active) return;
+          await handlePayload(payload);
+        }
+      } catch (cause) {
+        console.warn('No se pudieron leer las notificaciones pendientes', cause);
+      }
+    })();
+
     return () => {
+      active = false;
       if (subscription && typeof subscription.remove === 'function') {
         subscription.remove();
       }
     };
-  }, [addPaymentFromNotification]);
+  }, [handlePayload, isLoading]);
 }

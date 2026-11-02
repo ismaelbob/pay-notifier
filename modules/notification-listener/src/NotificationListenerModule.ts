@@ -1,5 +1,5 @@
 import { NativeModule, requireOptionalNativeModule } from 'expo';
-import type { NotificationListenerEvents } from './NotificationListener.types';
+import type { NotificationListenerEvents, NotificationPayload } from './NotificationListener.types';
 import NotificationListenerModuleWeb from './NotificationListenerModule.web';
 
 declare class NotificationListenerModule extends NativeModule<NotificationListenerEvents> {
@@ -7,6 +7,8 @@ declare class NotificationListenerModule extends NativeModule<NotificationListen
   requestPermission(): void;
   openSettings(): void;
   setEnabledBanks?(banks: string[]): void;
+  getPendingNotifications(): NotificationPayload[];
+  removePendingNotifications(ids: string[]): void;
 }
 
 const nativeModule = requireOptionalNativeModule<NotificationListenerModule>('NotificationListener');

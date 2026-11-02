@@ -6,6 +6,8 @@ export type NotificationPayload = {
   subText?: string | null;
   bigText?: string | null;
   postedTime?: number;
+  /** Identificador de la notificación guardada; se usa para confirmarla (ack). */
+  pendingId?: string | null;
 };
 
 export type NotificationListenerEvents = {

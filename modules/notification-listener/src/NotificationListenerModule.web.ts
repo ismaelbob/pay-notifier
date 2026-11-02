@@ -1,5 +1,5 @@
 import { NativeModule } from 'expo';
-import type { NotificationListenerEvents } from './NotificationListener.types';
+import type { NotificationListenerEvents, NotificationPayload } from './NotificationListener.types';
 
 class NotificationListenerModule extends NativeModule<NotificationListenerEvents> {
   isEnabled() {
@@ -12,6 +12,12 @@ class NotificationListenerModule extends NativeModule<NotificationListenerEvents
     // Not supported on web
   }
   setEnabledBanks() {
+    // Not supported on web
+  }
+  getPendingNotifications(): NotificationPayload[] {
+    return [];
+  }
+  removePendingNotifications() {
     // Not supported on web
   }
 }

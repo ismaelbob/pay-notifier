@@ -6,7 +6,7 @@ import { Screen } from '../../components/Screen';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { APP_NAME, CURRENCY } from '../../config';
 import { THEME_OPTIONS, useTheme } from '../../theme/ThemeContext';
-import NotificationListenerModule from '../../../modules/modules/notification-listener/src/NotificationListenerModule';
+import NotificationListenerModule from '../../../modules/notification-listener';
 
 function SettingRow({ icon, title, description, action, onPress }) {
   const { colors } = useTheme();
@@ -55,7 +55,7 @@ export default function SettingsScreen() {
       }
       const enabled = NotificationListenerModule.isEnabled();
       if (enabled) {
-        Alert.alert('Acceso concedido', 'Pay Notifier ya tiene acceso a las notificaciones. Los cobros de Nequi, Bancolombia, Daviplata, BBVA, Davivienda y Banco de Bogotá se guardarán automáticamente.');
+        Alert.alert('Acceso concedido', 'Pay Notifier ya tiene acceso a las notificaciones. Los cobros de BNB, BMSC, Banco Unión, Banco Bisa, BCP Bolivia, Banco Económico y BancoSol, y de las billeteras Yape, Yasta, Altoke, ZAS, Tigo Money y YOLO se guardarán automáticamente.');
       } else {
         Alert.alert(
           'Acceso necesario',
@@ -115,13 +115,13 @@ export default function SettingsScreen() {
           <SettingRow
             icon="notifications-outline"
             title="Acceso a notificaciones"
-            description="Actívalo para detectar cobros de Nequi, Bancolombia, Daviplata, BBVA, Davivienda o Banco de Bogotá"
+            description="Actívalo para detectar cobros desde las apps de bancos y billeteras de Bolivia"
             onPress={handleCheckNotificationAccess}
           />
           <SettingRow
             icon="scan-circle-outline"
-            title="Bancos detectados"
-            description="Nequi • Bancolombia • Daviplata • BBVA • Davivienda • Banco de Bogotá"
+            title="Bancos y billeteras detectados"
+            description={'Bancos: BNB • BMSC • Banco Unión • Banco Bisa • BCP Bolivia • Banco Económico • BancoSol\nBilleteras: Yape • Yasta • Altoke • ZAS • Tigo Money • YOLO'}
           />
         </View>
 

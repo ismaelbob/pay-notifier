@@ -1,6 +1,5 @@
 package expo.modules.notificationlistener
 
-import android.content.ComponentName
 import android.content.Intent
 import android.provider.Settings
 import androidx.core.app.NotificationManagerCompat
@@ -20,7 +19,6 @@ class NotificationListenerModule : Module() {
 
     OnCreate {
       instance = this@NotificationListenerModule
-      BankNotificationListenerService.flush(this@NotificationListenerModule)
     }
 
     OnDestroy {
@@ -53,20 +51,32 @@ class NotificationListenerModule : Module() {
       // Banks are filtered in the service; method kept for API parity
       banks
     }
+
+    // Notificaciones capturadas mientras el runtime de JS no estaba activo.
+    Function("getPendingNotifications") {
+      val context = appContext.reactContext ?: return@Function emptyList<Map<String, Any?>>()
+      BankNotificationStore.all(context).map { payloadToMap(it) }
+    }
+
+    // Confirma que una notificación pendiente ya fue procesada por JS.
+    Function("removePendingNotifications") { ids: List<String> ->
+      val context = appContext.reactContext ?: return@Function
+      BankNotificationStore.remove(context, ids)
+    }
   }
 
-  fun sendBankNotification(payload: BankNotificationListenerService.BankNotificationPayload) {
-    sendEvent(
-      "onBankNotification",
-      mapOf(
-        "appPackage" to payload.appPackage,
-        "bank" to payload.bank,
-        "title" to payload.title,
-        "text" to payload.text,
-        "subText" to payload.subText,
-        "bigText" to payload.bigText,
-        "postedTime" to payload.postedTime
-      )
-    )
+  fun sendBankNotification(payload: BankNotificationPayload) {
+    sendEvent("onBankNotification", payloadToMap(payload))
   }
+
+  private fun payloadToMap(payload: BankNotificationPayload): Map<String, Any?> = mapOf(
+    "appPackage" to payload.appPackage,
+    "bank" to payload.bank,
+    "title" to payload.title,
+    "text" to payload.text,
+    "subText" to payload.subText,
+    "bigText" to payload.bigText,
+    "postedTime" to payload.postedTime,
+    "pendingId" to payload.pendingId.ifEmpty { null }
+  )
 }

@@ -9,7 +9,7 @@ const currencyFormatter = new Intl.NumberFormat(LOCALE, {
   maximumFractionDigits: CURRENCY_DECIMALS,
 });
 
-/** Convierte un importe "de pantalla" (p. ej. 250000 COP) a unidades menores (centavos). */
+/** Convierte un importe "de pantalla" (p. ej. 250 Bs) a unidades menores (centavos). */
 export function toMinorUnits(amount) {
   return Math.round(amount * factor);
 }
