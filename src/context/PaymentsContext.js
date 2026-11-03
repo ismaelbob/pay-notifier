@@ -9,7 +9,6 @@ import {
 } from 'react';
 import { Platform } from 'react-native';
 
-import { buildRandomPayment } from '../data/payments';
 import { insertPayment, listPayments } from '../db/paymentsRepository';
 import NotificationListenerModule from '../../modules/notification-listener';
 import { parseBankNotification } from '../utils/notificationParser';
@@ -19,7 +18,6 @@ const PaymentsContext = createContext({
   isLoading: true,
   error: null,
   reload: async () => {},
-  addRandomPayment: async () => {},
   addPaymentFromNotification: async () => {},
 });
 
@@ -68,15 +66,6 @@ export function PaymentsProvider({ children }) {
     setIsLoading(false);
   }, [load]);
 
-  const addRandomPayment = useCallback(async () => {
-    const payment = buildRandomPayment();
-    const { inserted } = await insertPayment(db, payment);
-    if (inserted) {
-      setPayments((current) => [payment, ...current]);
-    }
-    return payment;
-  }, [db]);
-
   const addPaymentFromNotification = useCallback(async (parsed) => {
     const payment = {
       id: `notif-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
@@ -103,8 +92,8 @@ export function PaymentsProvider({ children }) {
   }, [db]);
 
   const value = useMemo(
-    () => ({ payments, isLoading, error, reload, addRandomPayment, addPaymentFromNotification }),
-    [payments, isLoading, error, reload, addRandomPayment, addPaymentFromNotification]
+    () => ({ payments, isLoading, error, reload, addPaymentFromNotification }),
+    [payments, isLoading, error, reload, addPaymentFromNotification]
   );
 
   return <PaymentsContext.Provider value={value}>{children}</PaymentsContext.Provider>;

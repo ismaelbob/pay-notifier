@@ -96,7 +96,7 @@ export default function HistoryScreen() {
             </View>
             <Text style={[styles.emptyTitle, { color: colors.text }]}>Sin cobros en este período</Text>
             <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-              Prueba con otro rango de fechas o simula un cobro desde Inicio.
+              Los cobros recibidos aparecerán aquí cuando lleguen.
             </Text>
           </View>
         }

@@ -1,13 +1,20 @@
-import { SEED_PAYMENTS } from '../data/payments';
-import { insertPayment } from './paymentsRepository';
-
 export const DATABASE_NAME = 'pay-notifier.db';
 
-const DATABASE_VERSION = 3;
+const DATABASE_VERSION = 4;
+const LEGACY_SAMPLE_PAYMENT_IDS = [
+  'pay-001',
+  'pay-002',
+  'pay-003',
+  'pay-004',
+  'pay-005',
+  'pay-006',
+  'pay-007',
+  'pay-008',
+];
 
 /**
- * Crea el esquema la primera vez (y siembra datos de ejemplo) y aplica
- * migraciones futuras. `user_version` evita repetir el trabajo en cada arranque.
+ * Crea el esquema la primera vez y aplica migraciones. `user_version` evita
+ * repetir el trabajo en cada arranque.
  */
 export async function migrateDbIfNeeded(db) {
   await db.execAsync('PRAGMA journal_mode = WAL');
@@ -36,21 +43,12 @@ export async function migrateDbIfNeeded(db) {
       `);
     }
 
-    // En instalaciones nuevas (currentVersion 0) los seeds se siembran al final,
-    // cuando la tabla ya tiene todas las columnas.
     if (currentVersion >= 1 && currentVersion < 2) {
-      // COP no tiene decimales y BOB usa 2: multiplicar por 100 conserva el
-      // valor numérico de los cobros ya guardados.
+      // Convierte los cobros de COP sin decimales a las unidades menores de BOB.
       await db.execAsync('UPDATE payments SET amount_minor = amount_minor * 100;');
-
-      // Se borran los datos de ejemplo colombianos; se resiembran más abajo.
-      const seedIds = SEED_PAYMENTS.map((payment) => payment.id);
-      const placeholders = seedIds.map(() => '?').join(', ');
-      await db.runAsync(`DELETE FROM payments WHERE id IN (${placeholders})`, ...seedIds);
     }
 
     if (currentVersion < 3) {
-      // Deduplicación de notificaciones: una misma clave no se guarda dos veces.
       const columns = await db.getAllAsync('PRAGMA table_info(payments)');
       const hasSourceKey = columns.some((column) => column.name === 'source_key');
 
@@ -58,19 +56,18 @@ export async function migrateDbIfNeeded(db) {
         await db.execAsync('ALTER TABLE payments ADD COLUMN source_key TEXT;');
       }
 
-      // SQLite permite múltiples NULL en un índice UNIQUE, así que los cobros
-      // manuales o simulados (sin clave) no se ven afectados.
       await db.execAsync(`
         CREATE UNIQUE INDEX IF NOT EXISTS payments_source_key_idx
           ON payments (source_key);
       `);
     }
 
-    // Instalaciones nuevas o bases migradas desde la versión 1.
-    if (currentVersion < 2) {
-      for (const payment of SEED_PAYMENTS) {
-        await insertPayment(db, payment);
-      }
+    if (currentVersion < 4) {
+      const placeholders = LEGACY_SAMPLE_PAYMENT_IDS.map(() => '?').join(', ');
+      await db.runAsync(
+        `DELETE FROM payments WHERE id IN (${placeholders})`,
+        ...LEGACY_SAMPLE_PAYMENT_IDS
+      );
     }
 
     await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);

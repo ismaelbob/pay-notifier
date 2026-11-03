@@ -1,10 +1,9 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { Link } from 'expo-router';
-import { useCallback, useMemo } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { ErrorState } from '../../components/ErrorState';
-import { InfoBanner } from '../../components/InfoBanner';
 import { LoadingState } from '../../components/LoadingState';
 import { PaymentRow } from '../../components/PaymentRow';
 import { Screen } from '../../components/Screen';
@@ -23,18 +22,9 @@ function getGreeting() {
 
 export default function HomeScreen() {
   const { colors, isDark } = useTheme();
-  const { payments, isLoading, error, reload, addRandomPayment } = usePayments();
+  const { payments, isLoading, error, reload } = usePayments();
   const totals = useMemo(() => getTotals(payments), [payments]);
   const recent = payments.slice(0, 4);
-
-  const handleSimulate = useCallback(async () => {
-    try {
-      await addRandomPayment();
-    } catch (cause) {
-      console.warn('No se pudo guardar el cobro', cause);
-      Alert.alert('No se pudo guardar', 'Inténtalo de nuevo.');
-    }
-  }, [addRandomPayment]);
 
   if (isLoading) {
     return (
@@ -114,32 +104,25 @@ export default function HomeScreen() {
           <View
             style={[styles.listCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
           >
-            {recent.map((payment, index) => (
-              <PaymentRow
-                key={payment.id}
-                payment={payment}
-                showDivider={index < recent.length - 1}
-              />
-            ))}
+            {recent.length > 0 ? (
+              recent.map((payment, index) => (
+                <PaymentRow
+                  key={payment.id}
+                  payment={payment}
+                  showDivider={index < recent.length - 1}
+                />
+              ))
+            ) : (
+              <View style={styles.empty}>
+                <Ionicons name="receipt-outline" size={24} color={colors.textMuted} />
+                <Text style={[styles.emptyTitle, { color: colors.text }]}>Sin cobros todavía</Text>
+                <Text style={[styles.emptyText, { color: colors.textMuted }]}>
+                  Cuando recibas un pago, aparecerá aquí.
+                </Text>
+              </View>
+            )}
           </View>
         </View>
-
-        <Pressable
-          onPress={handleSimulate}
-          style={({ pressed }) => [
-            styles.simulate,
-            { backgroundColor: colors.primarySoft, opacity: pressed ? 0.7 : 1 },
-          ]}
-        >
-          <Ionicons name="add-circle" size={20} color={colors.primary} />
-          <Text style={[styles.simulateText, { color: colors.primary }]}>Simular cobro recibido</Text>
-        </Pressable>
-
-        <InfoBanner>
-          Tus cobros se guardan en este dispositivo con SQLite. La detección automática de
-          notificaciones bancarias necesita un development build con un módulo nativo; no funciona
-          en Expo Go.
-        </InfoBanner>
       </ScrollView>
     </Screen>
   );
@@ -226,16 +209,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
-  simulate: {
-    flexDirection: 'row',
+  empty: {
     alignItems: 'center',
-    justifyContent: 'center',
+    padding: 20,
     gap: 8,
-    paddingVertical: 14,
-    borderRadius: 16,
   },
-  simulateText: {
-    fontSize: 14.5,
+  emptyTitle: {
+    fontSize: 15,
     fontWeight: '700',
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: 'center',
   },
 });
