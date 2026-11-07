@@ -1,10 +1,26 @@
 import { toMinorUnits } from './money';
 
 const CURRENCY_AMOUNT_REGEX = /(?:bs\.?|bob|\$)\s*(\d[\d.,]*)/gi;
+// Algunas billeteras escriben el monto antes del símbolo: "100 Bs".
+const CURRENCY_SUFFIX_AMOUNT_REGEX = /(\d[\d.,]*)\s*(?:bs\.?|bob)\b/gi;
 const BARE_AMOUNT_REGEX = /(?:^|[^\d/])(\d[\d.,]*)(?![.,]?\d)/g;
 
 // Palabras que indican un cobro. Se comparan sin acentos y en minúsculas.
 const STRONG_INCOMING = [
+  'te ha enviado',
+  'te han enviado',
+  'te ha transferido',
+  'te han transferido',
+  'te ha depositado',
+  'te han depositado',
+  'te ha pagado',
+  'te han pagado',
+  'te enviaron',
+  'te transfirieron',
+  'te depositaron',
+  'te pagaron',
+  'cobro exitoso',
+  'nuevo cobro',
   'recibiste',
   'recibio',
   'recibieron',
@@ -64,6 +80,10 @@ const OUTGOING = [
 ];
 
 const SENDER_PATTERNS = [
+  // Yasta: "JUAN PEREZ te ha enviado 100 Bs".
+  /^([^\n]{2,60}?)\s+te\s+ha\s+enviado/im,
+  /^([^\n]{2,60}?)\s+te\s+ha\s+(?:transferido|depositado|pagado|consignado)/im,
+  /^([^\n]{2,60}?)\s+te\s+(?:envi[oó]|transfiri[oó]|deposit[oó]|pag[oó])\s/im,
   /recibiste\s+(?:bs\.?\s*)?[\d.,]+[.\-]*\s+(?:de|desde)\s*[:\-]?\s*([^\n,;]{2,60})/i,
   /recibiste\s+(?:de|desde)\s*[:\-]?\s*([^\n,;]{2,60})/i,
   /recibiste\s+(?:un\s+)?(?:pago|abono|dep[oó]sito|transferencia|yapeo|cobro)\s+(?:de|desde)\s*[:\-]?\s*([^\n,;]{2,60})/i,
@@ -162,9 +182,12 @@ function isBalanceAmount(text, index) {
 }
 
 function parseAmount(text) {
-  const candidates = collectAmounts(CURRENCY_AMOUNT_REGEX, text).filter(
-    (candidate) => !isBalanceAmount(text, candidate.index)
-  );
+  const candidates = [
+    ...collectAmounts(CURRENCY_AMOUNT_REGEX, text),
+    ...collectAmounts(CURRENCY_SUFFIX_AMOUNT_REGEX, text),
+  ]
+    .filter((candidate) => !isBalanceAmount(text, candidate.index))
+    .sort((a, b) => a.index - b.index);
   const incomingIndex = firstIncomingIndex(text);
 
   let selected = null;
