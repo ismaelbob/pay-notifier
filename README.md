@@ -65,6 +65,7 @@ Los cobros se guardan en el dispositivo con **expo-sqlite** (`pay-notifier.db`):
 - **Colores por banco**: `src/data/payments.js` (`BANK_COLORS`).
 - **Datos de ejemplo**: `src/data/payments.js` (`SEED_PAYMENTS`).
 - **Parseo de notificaciones**: `src/utils/notificationParser.js`.
+- **Anuncio por voz**: `modules/notification-listener/android/.../PaymentAnnouncer.kt` y `SpeechAmountParser.kt`.
 
 El tema elegido (Sistema / Claro / Oscuro) se guarda con AsyncStorage.
 
@@ -79,6 +80,7 @@ desarrollo. Si publicas la versión web, tu hosting debe enviar esos mismos head
 - Botón **“Simular cobro recibido”** en Inicio para probar la inserción y persistencia.
 - Módulo nativo de Android enlazado por autolinking (`modules/notification-listener`).
 - Detección de cobros desde notificaciones, con la app abierta o cerrada.
+- Anuncio por voz del monto (“20 bolivianos recibidos”), también con la app cerrada.
 - Deduplicación por `source_key` para que un mismo cobro no se registre dos veces.
 - Sin backend ni sincronización entre dispositivos.
 
@@ -122,3 +124,19 @@ Requisitos:
 2. Activar **Acceso a notificaciones** para Pay Notifier en los ajustes del sistema (Ajustes → Acceso a notificaciones).
 
 No funciona en Expo Go ni en iOS (el sistema no permite a las apps leer notificaciones de otras apps).
+
+### Anuncio por voz
+
+Cuando llega un cobro, el servicio nativo lo anuncia en voz alta (“20 bolivianos recibidos”) sin
+necesidad de abrir la app. El audio lo genera `PaymentAnnouncer.kt` con `TextToSpeech` en español
+(`es-BO` → `es-ES` → idioma del sistema).
+
+- Se activa o desactiva en **Ajustes → Anunciar cobros por voz** (activado por defecto).
+- Usa el stream multimedia (`USAGE_MEDIA`), así que suena incluso en modo silencio mientras el
+  volumen multimedia esté alto. En “No molestar / silencio total” Android puede bloquearlo.
+- Solo se anuncia una vez por notificación: los reenvíos se ignoran.
+- `SpeechAmountParser.kt` es un port reducido de `src/utils/notificationParser.js` que solo decide
+  si hay cobro y cuánto decir. El guardado del cobro sigue en JavaScript, así que un fallo del
+  anuncio nunca afecta a los datos. Si agregas un banco o formato nuevo, actualiza ambos archivos.
+- La frase usa enteros, nunca decimales, para que el motor de voz no lea mal el separador:
+  `1 boliviano recibido`, `20 bolivianos recibidos`, `20 bolivianos con 50 centavos recibidos`.

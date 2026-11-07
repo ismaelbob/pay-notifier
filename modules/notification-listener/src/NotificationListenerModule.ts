@@ -1,5 +1,9 @@
 import { NativeModule, requireOptionalNativeModule } from 'expo';
-import type { NotificationListenerEvents, NotificationPayload } from './NotificationListener.types';
+import type {
+  NotificationListenerEvents,
+  NotificationPayload,
+  SpeechStatus,
+} from './NotificationListener.types';
 import NotificationListenerModuleWeb from './NotificationListenerModule.web';
 
 declare class NotificationListenerModule extends NativeModule<NotificationListenerEvents> {
@@ -9,6 +13,12 @@ declare class NotificationListenerModule extends NativeModule<NotificationListen
   setEnabledBanks?(banks: string[]): void;
   getPendingNotifications(): NotificationPayload[];
   removePendingNotifications(ids: string[]): void;
+
+  // Anuncio por voz (opcionales: builds antiguos no las incluyen).
+  isSpeechEnabled?(): boolean;
+  setSpeechEnabled?(enabled: boolean): boolean;
+  speakSample?(): void;
+  getSpeechStatus?(): SpeechStatus;
 }
 
 const nativeModule = requireOptionalNativeModule<NotificationListenerModule>('NotificationListener');
@@ -17,4 +27,8 @@ const nativeModule = requireOptionalNativeModule<NotificationListenerModule>('No
 const fallback = NotificationListenerModuleWeb as unknown as NotificationListenerModule;
 
 export default nativeModule ?? fallback;
-export type { NotificationPayload, NotificationListenerEvents } from './NotificationListener.types';
+export type {
+  NotificationPayload,
+  NotificationListenerEvents,
+  SpeechStatus,
+} from './NotificationListener.types';

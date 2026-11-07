@@ -1,5 +1,9 @@
 import { NativeModule } from 'expo';
-import type { NotificationListenerEvents, NotificationPayload } from './NotificationListener.types';
+import type {
+  NotificationListenerEvents,
+  NotificationPayload,
+  SpeechStatus,
+} from './NotificationListener.types';
 
 class NotificationListenerModule extends NativeModule<NotificationListenerEvents> {
   isEnabled() {
@@ -20,7 +24,30 @@ class NotificationListenerModule extends NativeModule<NotificationListenerEvents
   removePendingNotifications() {
     // Not supported on web
   }
+  isSpeechEnabled() {
+    return false;
+  }
+  setSpeechEnabled() {
+    return false;
+  }
+  speakSample() {
+    // Not supported on web
+  }
+  getSpeechStatus(): SpeechStatus {
+    return {
+      enabled: false,
+      available: false,
+      initializing: false,
+      spanishVoice: false,
+      language: null,
+      engine: null,
+    };
+  }
 }
 
 export default new NotificationListenerModule();
-export type { NotificationPayload, NotificationListenerEvents } from './NotificationListener.types';
+export type {
+  NotificationPayload,
+  NotificationListenerEvents,
+  SpeechStatus,
+} from './NotificationListener.types';

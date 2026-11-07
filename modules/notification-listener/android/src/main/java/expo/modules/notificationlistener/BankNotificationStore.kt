@@ -32,15 +32,21 @@ object BankNotificationStore {
     return digest.joinToString("") { byte -> "%02x".format(byte) }
   }
 
+  /**
+   * Guarda la notificación y devuelve `true` cuando no estaba ya en la cola.
+   * Ese valor decide si se anuncia en voz alta: los reenvíos no se repiten.
+   */
   @Synchronized
-  fun add(context: Context, payload: BankNotificationPayload, id: String = buildId(payload)) {
+  fun add(context: Context, payload: BankNotificationPayload, id: String = buildId(payload)): Boolean {
     val now = System.currentTimeMillis()
-    val items = readItems(context)
-      .filter { it.optLong("savedAt", 0L) > now - MAX_AGE_MS && it.optString("id") != id }
-      .toMutableList()
+    val fresh = readItems(context).filter { it.optLong("savedAt", 0L) > now - MAX_AGE_MS }
+    val alreadyStored = fresh.any { it.optString("id") == id }
 
+    val items = fresh.filter { it.optString("id") != id }.toMutableList()
     items.add(0, toJson(payload, id, now))
     writeItems(context, items.take(MAX_ITEMS))
+
+    return !alreadyStored
   }
 
   @Synchronized

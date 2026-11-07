@@ -25,6 +25,13 @@ class BankNotificationListenerService : NotificationListenerService() {
     )
   }
 
+  override fun onCreate() {
+    super.onCreate()
+    // Se inicializa el motor de voz con antelación: la primera notificación
+    // puede llegar antes de que TextToSpeech termine de arrancar.
+    PaymentAnnouncer.getInstance(applicationContext)
+  }
+
   override fun onNotificationPosted(sbn: StatusBarNotification?) {
     super.onNotificationPosted(sbn)
     if (sbn == null) return
@@ -47,7 +54,16 @@ class BankNotificationListenerService : NotificationListenerService() {
 
     // Se persiste siempre: si la app está cerrada, JS lo consume al abrirla.
     val pendingId = BankNotificationStore.buildId(payload)
-    BankNotificationStore.add(applicationContext, payload, pendingId)
+    val isNew = BankNotificationStore.add(applicationContext, payload, pendingId)
+
+    // El anuncio por voz se decide aquí, sin depender de JS: puede correr con
+    // la app cerrada. Solo se anuncia la primera vez que se ve la notificación.
+    if (isNew) {
+      val amountMinor = SpeechAmountParser.parse(payload)
+      if (amountMinor != null) {
+        PaymentAnnouncer.getInstance(applicationContext).announce(amountMinor, pendingId)
+      }
+    }
 
     // Si el runtime de JS está vivo, se entrega de inmediato para que el cobro
     // aparezca sin esperar a reabrir la app.

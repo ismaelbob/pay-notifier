@@ -65,6 +65,32 @@ class NotificationListenerModule : Module() {
       val context = appContext.reactContext ?: return@Function
       BankNotificationStore.remove(context, ids)
     }
+
+    // --- Anuncio por voz ---
+
+    Function("isSpeechEnabled") {
+      val context = appContext.reactContext ?: return@Function true
+      SpeechPreferences.isEnabled(context)
+    }
+
+    Function("setSpeechEnabled") { enabled: Boolean ->
+      val context = appContext.reactContext ?: return@Function false
+      SpeechPreferences.setEnabled(context, enabled)
+      enabled
+    }
+
+    // Botón "Probar voz": usa el mismo motor que el servicio.
+    Function("speakSample") {
+      val context = appContext.reactContext ?: return@Function null
+      PaymentAnnouncer.getInstance(context).speakSample()
+      null
+    }
+
+    // Estado del motor de voz para avisar en Ajustes si falta el idioma.
+    Function("getSpeechStatus") {
+      val context = appContext.reactContext ?: return@Function emptyMap<String, Any?>()
+      PaymentAnnouncer.getInstance(context).status()
+    }
   }
 
   fun sendBankNotification(payload: BankNotificationPayload) {

@@ -1,5 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
 import { InfoBanner } from '../../components/InfoBanner';
 import { Screen } from '../../components/Screen';
@@ -8,7 +9,7 @@ import { APP_NAME, CURRENCY } from '../../config';
 import { THEME_OPTIONS, useTheme } from '../../theme/ThemeContext';
 import NotificationListenerModule from '../../../modules/notification-listener';
 
-function SettingRow({ icon, title, description, action, onPress }) {
+function SettingRow({ icon, title, description, action, onPress, showChevron = true }) {
   const { colors } = useTheme();
   const content = (
     <>
@@ -20,12 +21,12 @@ function SettingRow({ icon, title, description, action, onPress }) {
         {description ? <Text style={[styles.rowDescription, { color: colors.textMuted }]}>{description}</Text> : null}
       </View>
       {action ? <View style={styles.rowAction}>{action}</View> : null}
-      <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} />
+      {showChevron ? <Ionicons name="chevron-forward" size={18} color={colors.textSubtle} /> : null}
     </>
   );
 
   if (!onPress) {
-    return <View style={[styles.row, { backgroundColor: colors.card, borderColor: colors.border }]}>{content}</View>;
+    return <View style={[styles.row, { backgroundColor: colors.surface, borderColor: colors.border }]}>{content}</View>;
   }
 
   return (
@@ -33,7 +34,7 @@ function SettingRow({ icon, title, description, action, onPress }) {
       onPress={onPress}
       style={({ pressed }) => [
         styles.row,
-        { backgroundColor: colors.card, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
+        { backgroundColor: colors.surface, borderColor: colors.border, opacity: pressed ? 0.7 : 1 },
       ]}
     >
       {content}
@@ -43,6 +44,95 @@ function SettingRow({ icon, title, description, action, onPress }) {
 
 export default function SettingsScreen() {
   const { colors, mode, setMode } = useTheme();
+
+  const speechSupported =
+    Platform.OS === 'android' &&
+    typeof NotificationListenerModule.isSpeechEnabled === 'function' &&
+    typeof NotificationListenerModule.setSpeechEnabled === 'function';
+
+  const [speechEnabled, setSpeechEnabled] = useState(() => {
+    if (!speechSupported) return true;
+
+    try {
+      return NotificationListenerModule.isSpeechEnabled();
+    } catch (error) {
+      console.warn('No se pudo leer el ajuste de voz', error);
+      return true;
+    }
+  });
+  const [speechStatus, setSpeechStatus] = useState(null);
+
+  const refreshSpeechStatus = useCallback(() => {
+    if (typeof NotificationListenerModule.getSpeechStatus !== 'function') return;
+
+    try {
+      setSpeechStatus(NotificationListenerModule.getSpeechStatus());
+    } catch (error) {
+      console.warn('No se pudo consultar el estado de la voz', error);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!speechSupported) return undefined;
+
+    // El motor de voz tarda en inicializar; se consulta al abrir y otra vez
+    // un par de segundos después. Diferido para no encadenar renders.
+    const initial = setTimeout(refreshSpeechStatus, 0);
+    const delayed = setTimeout(refreshSpeechStatus, 2000);
+
+    return () => {
+      clearTimeout(initial);
+      clearTimeout(delayed);
+    };
+  }, [refreshSpeechStatus, speechSupported]);
+
+  const handleToggleSpeech = (value) => {
+    setSpeechEnabled(value);
+
+    try {
+      NotificationListenerModule.setSpeechEnabled?.(value);
+      refreshSpeechStatus();
+    } catch (error) {
+      console.warn('No se pudo guardar el ajuste de voz', error);
+      setSpeechEnabled(!value);
+      Alert.alert('No se pudo cambiar el ajuste', 'Intenta de nuevo.');
+    }
+  };
+
+  const handleTestSpeech = () => {
+    if (typeof NotificationListenerModule.speakSample !== 'function') {
+      Alert.alert(
+        'Módulo no disponible',
+        'Este build no incluye el anuncio por voz. Genera un nuevo development build.'
+      );
+      return;
+    }
+
+    try {
+      NotificationListenerModule.speakSample();
+    } catch (error) {
+      console.warn('No se pudo probar la voz', error);
+      Alert.alert(
+        'Voz no disponible',
+        'Revisa que tu teléfono tenga un motor de voz con español instalado.'
+      );
+    }
+  };
+
+  const speechWarning = (() => {
+    if (!speechSupported || !speechStatus || speechStatus.initializing) return null;
+
+    if (!speechStatus.available) {
+      return 'No se encontró un motor de voz. Instala "Speech Services by Google" desde Play Store.';
+    }
+
+    if (!speechStatus.spanishVoice) {
+      return 'No se encontró una voz en español. El anuncio puede sonar en otro idioma.';
+    }
+
+    return null;
+  })();
+
   const handleCheckNotificationAccess = () => {
     if (Platform.OS !== 'android') {
       Alert.alert('Solo Android', 'La lectura de notificaciones bancarias solo está disponible en Android con un development build.');
@@ -78,12 +168,12 @@ export default function SettingsScreen() {
         <ScreenHeader title="Ajustes" subtitle="Tema, avisos y detalles de la app" />
 
         <InfoBanner>
-          El tema y los datos actuales son locales. En Expo Go no se leen notificaciones; usa un
-          development build para detectar cobros automáticamente.
+          El tema y los datos son locales. El anuncio por voz funciona incluso con la app cerrada;
+          para detectar cobros necesitas un development build en Android (no funciona en Expo Go).
         </InfoBanner>
 
         <Text style={[styles.sectionTitle, { color: colors.textSubtle }]}>Apariencia</Text>
-        <View style={[styles.group, { backgroundColor: colors.card, borderColor: colors.border }]}>
+        <View style={[styles.group, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           {THEME_OPTIONS.map((option, index) => {
             const selected = mode === option.value;
             return (
@@ -123,7 +213,40 @@ export default function SettingsScreen() {
             title="Bancos y billeteras detectados"
             description={'Bancos: BNB • BMSC • Banco Unión • Banco Bisa • BCP Bolivia • Banco Económico • BancoSol\nBilleteras: Yape • Yasta • Altoke • ZAS • Tigo Money • YOLO'}
           />
+          <SettingRow
+            icon="volume-high-outline"
+            title="Anunciar cobros por voz"
+            description={
+              speechSupported
+                ? 'Escucha el monto apenas llega el pago, aunque la app esté cerrada'
+                : 'Solo en Android con un development build'
+            }
+            showChevron={false}
+            action={
+              <Switch
+                value={speechEnabled}
+                onValueChange={handleToggleSpeech}
+                disabled={!speechSupported}
+                trackColor={{ false: colors.border, true: colors.primary }}
+                thumbColor={colors.surface}
+              />
+            }
+          />
+          <SettingRow
+            icon="play-circle-outline"
+            title="Probar voz"
+            description={
+              speechSupported
+                ? 'Escucha cómo se anuncian los cobros: “20 bolivianos recibidos”'
+                : 'Requiere un development build en Android'
+            }
+            onPress={handleTestSpeech}
+            showChevron={false}
+          />
         </View>
+        {speechWarning ? (
+          <Text style={[styles.hint, { color: colors.textMuted }]}>{speechWarning}</Text>
+        ) : null}
 
         <Text style={[styles.sectionTitle, { color: colors.textSubtle }]}>Acerca de</Text>
         <View style={styles.group}>
@@ -208,5 +331,10 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: 'center',
     fontSize: 12,
+  },
+  hint: {
+    fontSize: 12.5,
+    lineHeight: 18,
+    paddingHorizontal: 4,
   },
 });
