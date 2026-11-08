@@ -61,7 +61,8 @@ class BankNotificationListenerService : NotificationListenerService() {
     if (isNew) {
       val amountMinor = SpeechAmountParser.parse(payload)
       if (amountMinor != null) {
-        PaymentAnnouncer.getInstance(applicationContext).announce(amountMinor, pendingId)
+        PaymentAnnouncer.getInstance(applicationContext)
+          .announce(amountMinor, pendingId, payload.postedTime)
       }
     }
 

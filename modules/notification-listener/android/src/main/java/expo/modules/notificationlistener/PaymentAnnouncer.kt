@@ -5,6 +5,8 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.speech.tts.TextToSpeech
 import android.speech.tts.UtteranceProgressListener
 import android.util.Log
@@ -23,6 +25,7 @@ class PaymentAnnouncer private constructor(context: Context) : TextToSpeech.OnIn
     private const val TAG = "PaymentAnnouncer"
     private const val SAMPLE_TEXT = "20 bolivianos recibidos"
     private const val MAX_PENDING = 5
+    private const val ANNOUNCE_DELAY_MS = 500L
 
     @Volatile
     private var instance: PaymentAnnouncer? = null
@@ -45,6 +48,7 @@ class PaymentAnnouncer private constructor(context: Context) : TextToSpeech.OnIn
   private val appContext = context.applicationContext
   private val lock = Any()
   private val pending = ArrayDeque<String>()
+  private val handler = Handler(Looper.getMainLooper())
 
   private var engine: TextToSpeech? = null
   private var ready = false
@@ -95,8 +99,12 @@ class PaymentAnnouncer private constructor(context: Context) : TextToSpeech.OnIn
   /**
    * Anuncia un cobro. Se ignora si la voz está desactivada o si esa
    * notificación ya se anunció antes.
+   *
+   * La notificación del banco suena al publicarse, así que se espera medio
+   * segundo para no pisarla. Se descuenta el tiempo que el sistema haya
+   * tardado en entregarnos el callback, usando `postedTime`.
    */
-  fun announce(amountMinor: Long, notificationId: String) {
+  fun announce(amountMinor: Long, notificationId: String, postedTime: Long) {
     if (!SpeechPreferences.isEnabled(appContext)) return
     if (SpeechPreferences.wasAnnounced(appContext, notificationId)) return
 
@@ -104,12 +112,15 @@ class PaymentAnnouncer private constructor(context: Context) : TextToSpeech.OnIn
     // seguidas no se anuncien dos veces.
     SpeechPreferences.markAnnounced(appContext, notificationId)
 
-    enqueue(buildPhrase(amountMinor))
+    val elapsed = if (postedTime > 0) System.currentTimeMillis() - postedTime else 0L
+    val delay = (ANNOUNCE_DELAY_MS - elapsed).coerceIn(0L, ANNOUNCE_DELAY_MS)
+
+    enqueue(buildPhrase(amountMinor), delay)
   }
 
   /** Botón "Probar voz" de Ajustes; funciona aunque el anuncio esté apagado. */
   fun speakSample() {
-    enqueue(SAMPLE_TEXT)
+    enqueue(SAMPLE_TEXT, 0L)
   }
 
   fun status(): Map<String, Any?> {
@@ -146,9 +157,17 @@ class PaymentAnnouncer private constructor(context: Context) : TextToSpeech.OnIn
     }
   }
 
-  private fun enqueue(text: String) {
+  private fun enqueue(text: String, delayMs: Long) {
     if (text.isEmpty()) return
 
+    if (delayMs > 0L) {
+      handler.postDelayed({ enqueueNow(text) }, delayMs)
+    } else {
+      enqueueNow(text)
+    }
+  }
+
+  private fun enqueueNow(text: String) {
     synchronized(lock) {
       if (ready) {
         speakNow(text)

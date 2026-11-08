@@ -132,6 +132,8 @@ necesidad de abrir la app. El audio lo genera `PaymentAnnouncer.kt` con `TextToS
 (`es-BO` → `es-ES` → idioma del sistema).
 
 - Se activa o desactiva en **Ajustes → Anunciar cobros por voz** (activado por defecto).
+- El anuncio espera ~0.5 s desde que el banco publica la notificación para no pisar su sonido.
+  El retardo se compensa con `postedTime`, así que no se suman esperas si el sistema entrega tarde.
 - Usa el stream multimedia (`USAGE_MEDIA`), así que suena incluso en modo silencio mientras el
   volumen multimedia esté alto. En “No molestar / silencio total” Android puede bloquearlo.
 - Solo se anuncia una vez por notificación: los reenvíos se ignoran.
