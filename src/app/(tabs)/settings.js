@@ -1,4 +1,5 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Constants from 'expo-constants';
 import { useCallback, useEffect, useState } from 'react';
 import { Alert, Linking, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 
@@ -8,6 +9,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { APP_NAME, CURRENCY } from '../../config';
 import { THEME_OPTIONS, useTheme } from '../../theme/ThemeContext';
 import NotificationListenerModule from '../../../modules/notification-listener';
+
+const APP_VERSION = Constants.expoConfig?.version ?? 'desconocida';
 
 function SettingRow({ icon, title, description, action, onPress, showChevron = true }) {
   const { colors } = useTheme();
@@ -259,7 +262,9 @@ export default function SettingsScreen() {
           />
         </View>
 
-        <Text style={[styles.footerText, { color: colors.textSubtle }]}>Versión 1.0.0</Text>
+        <Text style={[styles.footerText, { color: colors.textSubtle }]}>
+          Versión {APP_VERSION}
+        </Text>
       </ScrollView>
     </Screen>
   );
